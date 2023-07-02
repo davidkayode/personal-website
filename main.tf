@@ -9,16 +9,6 @@ terraform {
   required_version = ">= 1.4.6"
 }
 
-
-resource "aws_s3_bucket" "example" {
-  bucket = ""
-
-  tags = {
-    Name        = "My bucket"
-    Environment = "Dev"
-  }
-}
-
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
   name           = "websiteTable-iac"
   billing_mode   = "PROVISIONED"
