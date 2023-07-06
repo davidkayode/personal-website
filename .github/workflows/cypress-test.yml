@@ -1,0 +1,22 @@
+name: Cypress E2E Tests
+on: 
+    workflow_run:
+        workflows: "Terraform action"
+        types: [completed]
+
+jobs:
+    on-success:
+        runs-on: ubuntu-22.04
+        if: $${{github.event.workflow_run.conclusion == 'success'}}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+
+            - name: Cypress run
+              uses: cypress-io/github-action@v5
+
+    on-failure:
+        runs-on: ubuntu-22.04
+        if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+        steps:
+            - run: echo "First workflow failed"
