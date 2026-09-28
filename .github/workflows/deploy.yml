@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      allow_destroy:
+        description: "Allow Terraform to delete or replace resources"
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -14,6 +19,10 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  TF_VERSION: 1.16.4
+  TF_STACKS: counter
 
 jobs:
   changes:
@@ -32,6 +41,9 @@ jobs:
             infra:
               - 'infra/**'
               - 'backend/**'
+              - 'scripts/**'
+              - 'tests/ci/**'
+              - '.github/workflows/**'
 
   check:
     needs: changes
@@ -41,15 +53,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.4.6
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
       - run: terraform fmt -check -recursive infra
-      - run: terraform -chdir=infra init -backend=false -input=false
-      - run: terraform -chdir=infra validate -no-color
+      - name: Validate and test each stack
+        run: |
+          for stack in $TF_STACKS; do
+            terraform -chdir="infra/$stack" init -backend=false -input=false
+            terraform -chdir="infra/$stack" validate -no-color
+            terraform -chdir="infra/$stack" test -no-color
+          done
+      - run: shellcheck scripts/*.sh infra/bootstrap/*.sh
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r backend/requirements-dev.txt
-      - run: pytest backend/ -v
+      - run: pytest backend tests/ci -v
 
   plan:
     needs: [changes, check]
@@ -59,32 +78,34 @@ jobs:
       needs.changes.outputs.infra == 'true' &&
       vars.TF_PLAN_ENABLED == 'true'
     runs-on: ubuntu-latest
+    env:
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: gha-plan
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.4.6
-      - run: >-
-          terraform -chdir=infra init -input=false
-          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
-          -backend-config="key=${{ vars.TF_STATE_KEY }}"
-          -backend-config="region=${{ vars.AWS_REGION }}"
-      - id: plan
-        run: terraform -chdir=infra plan -no-color -input=false
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - name: Plan each stack
+        run: for stack in $TF_STACKS; do scripts/tf-stack.sh plan "$stack"; done
       - uses: actions/github-script@v7
-        env:
-          PLAN: ${{ steps.plan.outputs.stdout }}
         with:
           script: |
+            const fs = require('fs');
             const marker = '<!-- terraform-plan -->';
-            const body = `${marker}\n#### Terraform plan\n<details><summary>Show plan</summary>\n\n\`\`\`\n${process.env.PLAN.slice(0, 60000)}\n\`\`\`\n</details>`;
-            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number });
-            const existing = comments.find(c => c.body.startsWith(marker));
+            const sections = process.env.TF_STACKS.split(' ').map((stack) => {
+              const text = fs.readFileSync(`plan-${stack}.txt`, 'utf8').slice(0, 30000);
+              return `#### ${stack}\n<details><summary>Show plan</summary>\n\n\`\`\`\n${text}\n\`\`\`\n</details>`;
+            });
+            const body = `${marker}\n### Terraform plan\n\n${sections.join('\n\n')}`;
+            const comments = await github.paginate(github.rest.issues.listComments, { ...context.repo, issue_number: context.issue.number });
+            const existing = comments.find((c) => c.body.startsWith(marker));
             if (existing) {
               await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
             } else {
@@ -95,6 +116,7 @@ jobs:
     needs: [changes, check]
     if: >-
       !cancelled() &&
+      needs.changes.result == 'success' &&
       github.ref == 'refs/heads/main' &&
       github.event_name != 'pull_request' &&
       needs.check.result != 'failure'
@@ -103,6 +125,10 @@ jobs:
     concurrency:
       group: production
       cancel-in-progress: false
+    env:
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ALLOW_DESTROY: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_destroy }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -110,10 +136,23 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: gha-deploy
-      # Terraform apply is added in stage 3.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - name: Terraform
+        run: for stack in $TF_STACKS; do scripts/tf-stack.sh deploy "$stack"; done
+      - name: Write site config
+        run: |
+          url=$(terraform -chdir=infra/counter output -raw api_url)
+          test -n "$url"
+          printf 'window.COUNTER_API_URL = "%s";\n' "$url" > site/config.js
       - name: Sync site
-        if: needs.changes.outputs.site == 'true' || github.event_name == 'workflow_dispatch'
         run: aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}" --delete
+      - name: Invalidate CloudFront
+        run: |
+          id=$(aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths '/*' --query Invalidation.Id --output text)
+          aws cloudfront wait invalidation-completed --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --id "$id"
 
   smoke:
     needs: deploy

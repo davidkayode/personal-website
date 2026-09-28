@@ -33,3 +33,37 @@ def test_smoke_still_runs_when_check_was_skipped():
     condition = re.search(r"^\s+if:\s*(.+)$", smoke, re.M).group(1)
     assert "!cancelled()" in condition
     assert "needs.deploy.result == 'success'" in condition
+
+
+def test_deploy_writes_config_then_syncs_then_invalidates():
+    deploy = job_block(WORKFLOW.read_text(), "deploy")
+    assert deploy.index("site/config.js") < deploy.index("aws s3 sync site/") < deploy.index("create-invalidation")
+
+
+def test_deploy_refuses_an_empty_api_url():
+    assert 'test -n "$url"' in job_block(WORKFLOW.read_text(), "deploy")
+
+
+def test_plan_job_uses_the_read_only_role():
+    plan = job_block(WORKFLOW.read_text(), "plan")
+    assert "secrets.AWS_PLAN_ROLE_ARN" in plan
+    assert "secrets.AWS_ROLE_ARN" not in plan
+
+
+def test_deploy_needs_a_successful_changes_job():
+    assert "needs.changes.result == 'success'" in job_block(WORKFLOW.read_text(), "deploy")
+
+
+def test_terraform_version_supports_native_state_locking():
+    major, minor = map(int, re.search(r"TF_VERSION: (\d+)\.(\d+)", WORKFLOW.read_text()).groups())
+    assert (major, minor) >= (1, 10)
+
+
+def test_check_job_runs_terraform_tests_for_each_stack():
+    assert 'terraform -chdir="infra/$stack" test' in job_block(WORKFLOW.read_text(), "check")
+
+
+def test_destroying_resources_is_opt_in():
+    text = WORKFLOW.read_text()
+    assert "allow_destroy" in text
+    assert "ALLOW_DESTROY" in job_block(text, "deploy")
