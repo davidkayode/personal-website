@@ -12,7 +12,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: production
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -100,6 +100,9 @@ jobs:
       needs.check.result != 'failure'
     runs-on: ubuntu-latest
     environment: production
+    concurrency:
+      group: production
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
