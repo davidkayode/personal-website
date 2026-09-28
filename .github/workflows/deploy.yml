@@ -89,6 +89,8 @@ jobs:
           role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: gha-plan
+      - name: Mask the AWS account ID in logs
+        run: echo "::add-mask::$(aws sts get-caller-identity --query Account --output text)"
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
@@ -101,7 +103,8 @@ jobs:
             const fs = require('fs');
             const marker = '<!-- terraform-plan -->';
             const sections = process.env.TF_STACKS.split(' ').map((stack) => {
-              const text = fs.readFileSync(`plan-${stack}.txt`, 'utf8').slice(0, 30000);
+              // The repo is public: redact 12-digit AWS account IDs before posting.
+              const text = fs.readFileSync(`plan-${stack}.txt`, 'utf8').replace(/\b\d{12}\b/g, '************').slice(0, 30000);
               return `#### ${stack}\n<details><summary>Show plan</summary>\n\n\`\`\`\n${text}\n\`\`\`\n</details>`;
             });
             const body = `${marker}\n### Terraform plan\n\n${sections.join('\n\n')}`;
@@ -138,6 +141,8 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: gha-deploy
+      - name: Mask the AWS account ID in logs
+        run: echo "::add-mask::$(aws sts get-caller-identity --query Account --output text)"
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
@@ -150,7 +155,11 @@ jobs:
           test -n "$url"
           printf 'window.COUNTER_API_URL = "%s";\n' "$url" > site/config.js
       - name: Sync site
-        run: aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}" --delete
+        run: |
+          # Upload everything with no-cache so browsers revalidate instead of guessing freshness,
+          # then remove files that no longer exist.
+          aws s3 cp site/ "s3://${{ vars.SITE_BUCKET }}" --recursive --cache-control "no-cache"
+          aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}" --delete
       - name: Invalidate CloudFront
         run: |
           dist=$(terraform -chdir=infra/edge output -raw distribution_id)

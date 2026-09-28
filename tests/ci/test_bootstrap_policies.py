@@ -85,3 +85,13 @@ def test_dns_trust_names_exact_principals():
         principals = render(name)["Statement"][0]["Condition"]["ArnLike"]["aws:PrincipalArn"]
         assert any(p.endswith(expected) for p in principals), name
         assert all(":role/" in p for p in principals), name
+
+
+def test_role_policy_edits_require_the_boundary():
+    # Editing an unbounded personal-website-* role would be an escalation path.
+    doc = render("deploy.json")
+    for s in allow_statements(doc):
+        acts = actions(s)
+        if any(a in acts for a in ("iam:PutRolePolicy", "iam:DeleteRolePolicy")):
+            assert s.get("Condition", {}).get("StringEquals", {}).get("iam:PermissionsBoundary", "").endswith(":policy/personal-website-lambda-boundary"), s["Sid"]
+        assert "iam:UpdateAssumeRolePolicy" not in acts, s["Sid"]

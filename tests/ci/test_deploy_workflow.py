@@ -83,3 +83,19 @@ def test_each_job_reaches_dns_with_its_own_role():
     text = WORKFLOW.read_text()
     assert "TF_VAR_dns_role_arn: ${{ secrets.DNS_ROLE_ARN }}" in job_block(text, "deploy")
     assert "TF_VAR_dns_role_arn: ${{ secrets.DNS_READ_ROLE_ARN }}" in job_block(text, "plan")
+
+
+def test_account_id_is_masked_in_every_aws_job():
+    text = WORKFLOW.read_text()
+    for job in ("plan", "deploy"):
+        assert "::add-mask::" in job_block(text, job), job
+
+
+def test_plan_comment_redacts_account_ids():
+    assert r"\b\d{12}\b" in job_block(WORKFLOW.read_text(), "plan")
+
+
+def test_site_files_are_uploaded_with_no_cache():
+    deploy = job_block(WORKFLOW.read_text(), "deploy")
+    assert '--cache-control "no-cache"' in deploy
+    assert deploy.index("site/config.js") < deploy.index('--cache-control "no-cache"') < deploy.index("create-invalidation")
