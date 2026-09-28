@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "StateList", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::@STATE_BUCKET@" },
+    { "Sid": "StateObjects", "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], "Resource": "arn:aws:s3:::@STATE_BUCKET@/personal-website/*" },
+    { "Sid": "SiteObjects", "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], "Resource": "arn:aws:s3:::davidkayode.com/*" },
+    { "Sid": "SiteBucket", "Effect": "Allow", "Action": ["s3:ListBucket", "s3:Get*", "s3:PutBucketPolicy", "s3:PutBucketVersioning", "s3:PutBucketPublicAccessBlock", "s3:PutBucketTagging"], "Resource": "arn:aws:s3:::davidkayode.com" },
+    { "Sid": "Edge", "Effect": "Allow", "Action": ["cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:CreateInvalidation", "cloudfront:GetInvalidation", "cloudfront:ListTagsForResource", "cloudfront:TagResource", "cloudfront:UntagResource", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl"], "Resource": ["arn:aws:cloudfront::@ACCOUNT_ID@:distribution/*", "arn:aws:cloudfront::@ACCOUNT_ID@:origin-access-control/*"] },
+    { "Sid": "Certificates", "Effect": "Allow", "Action": ["acm:DescribeCertificate", "acm:ListTagsForCertificate", "acm:GetCertificate"], "Resource": "arn:aws:acm:us-east-1:@ACCOUNT_ID@:certificate/*" },
+    { "Sid": "CounterTable", "Effect": "Allow", "Action": "dynamodb:*", "Resource": "arn:aws:dynamodb:us-east-1:@ACCOUNT_ID@:table/personal-website-*" },
+    { "Sid": "CounterFunction", "Effect": "Allow", "Action": "lambda:*", "Resource": "arn:aws:lambda:us-east-1:@ACCOUNT_ID@:function:personal-website-*" },
+    { "Sid": "CounterApi", "Effect": "Allow", "Action": ["apigateway:GET", "apigateway:POST", "apigateway:PUT", "apigateway:PATCH", "apigateway:DELETE"], "Resource": ["arn:aws:apigateway:us-east-1::/apis", "arn:aws:apigateway:us-east-1::/apis/*", "arn:aws:apigateway:us-east-1::/tags/*"] },
+    { "Sid": "CounterLogs", "Effect": "Allow", "Action": "logs:*", "Resource": ["arn:aws:logs:us-east-1:@ACCOUNT_ID@:log-group:/aws/lambda/personal-website-*", "arn:aws:logs:us-east-1:@ACCOUNT_ID@:log-group:/aws/apigateway/personal-website-*"] },
+    { "Sid": "LogsDescribe", "Effect": "Allow", "Action": "logs:DescribeLogGroups", "Resource": "*" },
+    { "Sid": "ApiGatewayServiceRole", "Effect": "Allow", "Action": "iam:CreateServiceLinkedRole", "Resource": "*", "Condition": { "StringEquals": { "iam:AWSServiceName": "ops.apigateway.amazonaws.com" } } },
+    { "Sid": "LambdaRoleCreate", "Effect": "Allow", "Action": ["iam:CreateRole", "iam:PutRolePermissionsBoundary"], "Resource": "arn:aws:iam::@ACCOUNT_ID@:role/personal-website-*", "Condition": { "StringEquals": { "iam:PermissionsBoundary": "arn:aws:iam::@ACCOUNT_ID@:policy/personal-website-lambda-boundary" } } },
+    { "Sid": "LambdaRoleManage", "Effect": "Allow", "Action": ["iam:GetRole", "iam:UpdateRole", "iam:DeleteRole", "iam:TagRole", "iam:UntagRole", "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole", "iam:UpdateAssumeRolePolicy"], "Resource": "arn:aws:iam::@ACCOUNT_ID@:role/personal-website-*" },
+    { "Sid": "LambdaRolePass", "Effect": "Allow", "Action": "iam:PassRole", "Resource": "arn:aws:iam::@ACCOUNT_ID@:role/personal-website-*", "Condition": { "StringEquals": { "iam:PassedToService": "lambda.amazonaws.com" } } },
+    { "Sid": "KeepBoundaries", "Effect": "Deny", "Action": "iam:DeleteRolePermissionsBoundary", "Resource": "*" },
+    { "Sid": "DnsRole", "Effect": "Allow", "Action": "sts:AssumeRole", "Resource": "arn:aws:iam::@MGMT_ACCOUNT_ID@:role/personal-website-dns" }
+  ]
+}

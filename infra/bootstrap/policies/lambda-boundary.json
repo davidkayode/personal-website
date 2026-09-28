@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CounterTable",
+      "Effect": "Allow",
+      "Action": ["dynamodb:UpdateItem", "dynamodb:GetItem"],
+      "Resource": "arn:aws:dynamodb:us-east-1:@ACCOUNT_ID@:table/personal-website-*"
+    },
+    {
+      "Sid": "OwnLogs",
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:us-east-1:@ACCOUNT_ID@:log-group:/aws/lambda/personal-website-*"
+    }
+  ]
+}
