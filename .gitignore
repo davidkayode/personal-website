@@ -4,12 +4,18 @@ docs/
 .venv/
 
 # Terraform
-infra/.terraform/
-infra/build/
+infra/*/.terraform/
+infra/*/build/
+infra/*/tfplan
+infra/*/tfplan.json
+infra/edge/imports.tf
+infra/edge/generated.tf
+plan-*.txt
 *.tfstate
 *.tfstate.*
-*.tfplan
-tfplan
+
+# Generated at deploy time
+site/config.js
 
 # Python
 __pycache__/
