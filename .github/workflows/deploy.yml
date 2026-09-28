@@ -22,7 +22,7 @@ concurrency:
 
 env:
   TF_VERSION: 1.16.4
-  TF_STACKS: counter
+  TF_STACKS: counter edge
 
 jobs:
   changes:
@@ -81,6 +81,7 @@ jobs:
     env:
       TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_VAR_dns_role_arn: ${{ secrets.DNS_READ_ROLE_ARN }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -129,6 +130,7 @@ jobs:
       TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
       ALLOW_DESTROY: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_destroy }}
+      TF_VAR_dns_role_arn: ${{ secrets.DNS_ROLE_ARN }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -151,8 +153,10 @@ jobs:
         run: aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}" --delete
       - name: Invalidate CloudFront
         run: |
-          id=$(aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths '/*' --query Invalidation.Id --output text)
-          aws cloudfront wait invalidation-completed --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --id "$id"
+          dist=$(terraform -chdir=infra/edge output -raw distribution_id)
+          test -n "$dist"
+          id=$(aws cloudfront create-invalidation --distribution-id "$dist" --paths '/*' --query Invalidation.Id --output text)
+          aws cloudfront wait invalidation-completed --distribution-id "$dist" --id "$id"
 
   smoke:
     needs: deploy

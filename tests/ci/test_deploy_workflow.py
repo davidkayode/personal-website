@@ -67,3 +67,19 @@ def test_destroying_resources_is_opt_in():
     text = WORKFLOW.read_text()
     assert "allow_destroy" in text
     assert "ALLOW_DESTROY" in job_block(text, "deploy")
+
+
+def test_edge_stack_is_part_of_every_run():
+    assert re.search(r"TF_STACKS: counter edge\b", WORKFLOW.read_text())
+
+
+def test_invalidation_uses_the_edge_output():
+    deploy = job_block(WORKFLOW.read_text(), "deploy")
+    assert "terraform -chdir=infra/edge output -raw distribution_id" in deploy
+    assert "vars.CLOUDFRONT_DISTRIBUTION_ID" not in deploy
+
+
+def test_each_job_reaches_dns_with_its_own_role():
+    text = WORKFLOW.read_text()
+    assert "TF_VAR_dns_role_arn: ${{ secrets.DNS_ROLE_ARN }}" in job_block(text, "deploy")
+    assert "TF_VAR_dns_role_arn: ${{ secrets.DNS_READ_ROLE_ARN }}" in job_block(text, "plan")
