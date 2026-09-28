@@ -9,3 +9,4 @@ variable "site_origins" {
   type        = list(string)
   default     = ["https://davidkayode.com", "https://www.davidkayode.com"]
 }
+
