@@ -1,1 +1,16 @@
 .DS_Store
+node_modules/
+docs/inventory/
+.venv/
+
+# Terraform
+infra/.terraform/
+infra/build/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+
+# Python
+__pycache__/
+.pytest_cache/
