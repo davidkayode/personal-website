@@ -1,7 +1,8 @@
 {
   "Version": "2012-10-17",
   "Statement": [
-    { "Sid": "Zone", "Effect": "Allow", "Action": ["route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets", "route53:ListTagsForResource", "route53:ChangeTagsForResource", "route53:GetDNSSEC"], "Resource": "arn:aws:route53:::hostedzone/@ZONE_ID@" },
+    { "Sid": "Zone", "Effect": "Allow", "Action": ["route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ListTagsForResource", "route53:ChangeTagsForResource", "route53:GetDNSSEC"], "Resource": "arn:aws:route53:::hostedzone/@ZONE_ID@" },
+    { "Sid": "SiteRecords", "Effect": "Allow", "Action": "route53:ChangeResourceRecordSets", "Resource": "arn:aws:route53:::hostedzone/@ZONE_ID@", "Condition": { "ForAllValues:StringEquals": { "route53:ChangeResourceRecordSetsNormalizedRecordNames": ["davidkayode.com", "www.davidkayode.com", "_39a51f8ff3602f772775bf91428fada0.davidkayode.com"], "route53:ChangeResourceRecordSetsRecordTypes": ["A", "CNAME"] } } },
     { "Sid": "Changes", "Effect": "Allow", "Action": "route53:GetChange", "Resource": "arn:aws:route53:::change/*" },
     { "Sid": "List", "Effect": "Allow", "Action": ["route53:ListHostedZones", "route53:ListHostedZonesByName"], "Resource": "*" }
   ]

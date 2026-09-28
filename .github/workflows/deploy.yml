@@ -43,6 +43,8 @@ jobs:
               - 'backend/**'
               - 'scripts/**'
               - 'tests/ci/**'
+              - 'tests/js/**'
+              - 'site/script.js'
               - '.github/workflows/**'
 
   check:
@@ -69,6 +71,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r backend/requirements-dev.txt
       - run: pytest backend tests/ci -v
+      - run: node --test tests/js
 
   plan:
     needs: [changes, check]
@@ -153,7 +156,7 @@ jobs:
         run: |
           url=$(terraform -chdir=infra/counter output -raw api_url)
           test -n "$url"
-          printf 'window.COUNTER_API_URL = "%s";\n' "$url" > site/config.js
+          printf '{"counterApiUrl": "%s"}\n' "$url" > site/config.json
       - name: Sync site
         run: |
           # Upload everything with no-cache so browsers revalidate instead of guessing freshness,

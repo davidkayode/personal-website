@@ -37,7 +37,7 @@ def test_smoke_still_runs_when_check_was_skipped():
 
 def test_deploy_writes_config_then_syncs_then_invalidates():
     deploy = job_block(WORKFLOW.read_text(), "deploy")
-    assert deploy.index("site/config.js") < deploy.index("aws s3 sync site/") < deploy.index("create-invalidation")
+    assert deploy.index("site/config.json") < deploy.index("aws s3 sync site/") < deploy.index("create-invalidation")
 
 
 def test_deploy_refuses_an_empty_api_url():
@@ -98,4 +98,13 @@ def test_plan_comment_redacts_account_ids():
 def test_site_files_are_uploaded_with_no_cache():
     deploy = job_block(WORKFLOW.read_text(), "deploy")
     assert '--cache-control "no-cache"' in deploy
-    assert deploy.index("site/config.js") < deploy.index('--cache-control "no-cache"') < deploy.index("create-invalidation")
+    assert deploy.index("site/config.json") < deploy.index('--cache-control "no-cache"') < deploy.index("create-invalidation")
+
+
+def test_check_job_runs_the_browser_script_tests():
+    assert "node --test tests/js" in job_block(WORKFLOW.read_text(), "check")
+
+
+def test_script_changes_trigger_the_checks():
+    changes = job_block(WORKFLOW.read_text(), "changes")
+    assert "'site/script.js'" in changes and "'tests/js/**'" in changes

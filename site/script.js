@@ -1,11 +1,19 @@
 window.addEventListener('load', function () {
-  const url = window.COUNTER_API_URL;
-  if (!url) {
-    console.warn('Visitor counter disabled: COUNTER_API_URL is not set.');
-    return;
-  }
-
-  fetch(url, { method: 'POST' })
+  // The API URL is generated at deploy time, so fetch it instead of relying on
+  // a script tag: a cached index.html then still finds the current API.
+  return fetch('/config.json', { cache: 'no-cache' })
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error(`config.json HTTP error: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(function (config) {
+      if (!config.counterApiUrl) {
+        throw new Error('config.json has no counterApiUrl');
+      }
+      return fetch(config.counterApiUrl, { method: 'POST' });
+    })
     .then(function (response) {
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
@@ -18,6 +26,6 @@ window.addEventListener('load', function () {
     })
     // catch the error
     .catch(function (error) {
-      console.error('Error:', error);
+      console.warn('Visitor counter unavailable:', error.message);
     });
 });

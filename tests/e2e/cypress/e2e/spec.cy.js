@@ -8,9 +8,13 @@ describe('Live site', () => {
     });
   });
 
-  ['/assets/headshot.jpg', '/assets/David_Kayode_Resume.pdf', '/config.js'].forEach((path) => {
+  ['/assets/headshot.jpg', '/assets/David_Kayode_Resume.pdf'].forEach((path) => {
     it(`serves ${path}`, () => {
       cy.request(`https://davidkayode.com${path}`).its('status').should('eq', 200);
     });
+  });
+
+  it('publishes the counter API in /config.json', () => {
+    cy.request('https://davidkayode.com/config.json').its('body.counterApiUrl').should('match', /^https:\/\/.+\/prod\/count$/);
   });
 });

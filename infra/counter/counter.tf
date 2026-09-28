@@ -69,6 +69,7 @@ resource "aws_iam_role_policy" "counter" {
 
 resource "aws_lambda_function" "counter" {
   function_name    = local.counter_name
+  description      = "Visitor counter for davidkayode.com"
   role             = aws_iam_role.counter.arn
   runtime          = "python3.12"
   handler          = "handler.lambda_handler"

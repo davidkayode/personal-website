@@ -15,7 +15,7 @@ plan-*.txt
 *.tfstate.*
 
 # Generated at deploy time
-site/config.js
+site/config.json
 
 # Python
 __pycache__/

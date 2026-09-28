@@ -95,3 +95,27 @@ def test_role_policy_edits_require_the_boundary():
         if any(a in acts for a in ("iam:PutRolePolicy", "iam:DeleteRolePolicy")):
             assert s.get("Condition", {}).get("StringEquals", {}).get("iam:PermissionsBoundary", "").endswith(":policy/personal-website-lambda-boundary"), s["Sid"]
         assert "iam:UpdateAssumeRolePolicy" not in acts, s["Sid"]
+
+
+SITE_RECORDS = {"davidkayode.com", "www.davidkayode.com", "_39a51f8ff3602f772775bf91428fada0.davidkayode.com"}
+
+
+def test_dns_role_can_only_change_the_site_records():
+    changes = [s for s in allow_statements(render("dns-policy.json")) if "route53:ChangeResourceRecordSets" in actions(s)]
+    assert changes
+    for s in changes:
+        names = s["Condition"]["ForAllValues:StringEquals"]["route53:ChangeResourceRecordSetsNormalizedRecordNames"]
+        types = s["Condition"]["ForAllValues:StringEquals"]["route53:ChangeResourceRecordSetsRecordTypes"]
+        assert set(names) == SITE_RECORDS
+        assert set(types) == {"A", "CNAME"}
+
+
+def test_deploy_role_has_no_wildcard_lambda_access():
+    granted = [a for s in allow_statements(render("deploy.json")) for a in actions(s)]
+    assert "lambda:*" not in granted
+    assert not any("FunctionUrl" in a for a in granted)
+
+
+def test_deploy_role_is_denied_public_function_urls():
+    denies = [a for s in render("deploy.json")["Statement"] if s["Effect"] == "Deny" for a in actions(s)]
+    assert {"lambda:CreateFunctionUrlConfig", "lambda:UpdateFunctionUrlConfig"} <= set(denies)

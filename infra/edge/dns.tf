@@ -19,6 +19,10 @@ resource "aws_route53_record" "apex" {
     zone_id                = aws_cloudfront_distribution.site.hosted_zone_id
     evaluate_target_health = false
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_route53_record" "www" {
@@ -28,6 +32,10 @@ resource "aws_route53_record" "www" {
   type     = "CNAME"
   ttl      = 300
   records  = ["davidkayode.com"]
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 locals {
@@ -49,4 +57,8 @@ resource "aws_route53_record" "cert_validation" {
   ttl             = 300
   records         = [local.cert_validation[each.key].resource_record_value]
   allow_overwrite = false
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
