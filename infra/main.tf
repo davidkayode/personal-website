@@ -52,14 +52,12 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
 
 data "archive_file" "lambda" {
   type        = "zip"
-  source_file = "lambda.py"
-  output_path = "lambda_function_payload.zip"
+  source_file = "${path.module}/../backend/counter/lambda.py"
+  output_path = "${path.module}/build/lambda_function_payload.zip"
 }
 
 resource "aws_lambda_function" "example" {
-  # If the file is not in the current working directory you will need to include a
-  # path.module in the filename.
-  filename         = "lambda_function_payload.zip"
+  filename         = data.archive_file.lambda.output_path
   function_name    = "visitorCounter-iac"
   role             = aws_iam_role.iam_for_lambda.arn
   handler          = "lambda.lambda_handler"
