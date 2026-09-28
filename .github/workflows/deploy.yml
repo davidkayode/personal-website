@@ -71,7 +71,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r backend/requirements-dev.txt
       - run: pytest backend tests/ci -v
-      - run: node --test tests/js
+      - run: node --test tests/js/*.test.mjs
 
   plan:
     needs: [changes, check]
