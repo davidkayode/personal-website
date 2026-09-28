@@ -66,3 +66,22 @@ def test_plan_role_trusts_only_pull_requests():
     doc = render("plan-trust.json")
     subjects = doc["Statement"][0]["Condition"]["StringLike"]["token.actions.githubusercontent.com:sub"]
     assert subjects and all(s.endswith(":pull_request") for s in subjects)
+
+
+def test_dns_roles_are_limited_to_the_one_zone():
+    for name in ("dns-policy.json", "dns-read-policy.json"):
+        for s in allow_statements(render(name)):
+            if any(a.startswith("route53:") and a not in ("route53:ListHostedZones", "route53:ListHostedZonesByName", "route53:GetChange") for a in actions(s)):
+                assert s["Resource"] == "arn:aws:route53:::hostedzone/ZTEST", name
+
+
+def test_read_role_cannot_change_records():
+    granted = [a for s in allow_statements(render("dns-read-policy.json")) for a in actions(s)]
+    assert not any(a.startswith("route53:Change") for a in granted)
+
+
+def test_dns_trust_names_exact_principals():
+    for name, expected in (("dns-trust.json", ":role/GitHub_Role"), ("dns-read-trust.json", ":role/GitHub_Plan_Role")):
+        principals = render(name)["Statement"][0]["Condition"]["ArnLike"]["aws:PrincipalArn"]
+        assert any(p.endswith(expected) for p in principals), name
+        assert all(":role/" in p for p in principals), name

@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::@ACCOUNT_ID@:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "ArnLike": {
+          "aws:PrincipalArn": [
+            "arn:aws:iam::@ACCOUNT_ID@:role/GitHub_Role",
+            "arn:aws:iam::@ACCOUNT_ID@:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_Administrator_*"
+          ]
+        }
+      }
+    }
+  ]
+}

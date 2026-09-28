@@ -1,0 +1,7 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "Zone", "Effect": "Allow", "Action": ["route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ListTagsForResource", "route53:GetDNSSEC"], "Resource": "arn:aws:route53:::hostedzone/@ZONE_ID@" },
+    { "Sid": "List", "Effect": "Allow", "Action": ["route53:ListHostedZones", "route53:ListHostedZonesByName"], "Resource": "*" }
+  ]
+}
