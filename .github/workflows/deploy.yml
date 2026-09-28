@@ -117,7 +117,7 @@ jobs:
 
   smoke:
     needs: deploy
-    if: needs.deploy.result == 'success'
+    if: ${{ !cancelled() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

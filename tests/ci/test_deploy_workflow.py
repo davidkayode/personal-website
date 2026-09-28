@@ -25,3 +25,11 @@ def test_pr_runs_do_not_share_the_production_queue():
 def test_deploy_job_is_serialised_and_never_cancelled():
     deploy = job_block(WORKFLOW.read_text(), "deploy")
     assert re.search(r"concurrency:\s*\n\s+group: production\s*\n\s+cancel-in-progress: false", deploy)
+
+
+def test_smoke_still_runs_when_check_was_skipped():
+    # Without a status function, a skipped `check` upstream skips smoke on site-only pushes.
+    smoke = job_block(WORKFLOW.read_text(), "smoke")
+    condition = re.search(r"^\s+if:\s*(.+)$", smoke, re.M).group(1)
+    assert "!cancelled()" in condition
+    assert "needs.deploy.result == 'success'" in condition
