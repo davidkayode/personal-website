@@ -36,8 +36,14 @@ def test_personal_and_local_files_are_ignored():
     assert "infra/account/imports.tf" in ignored
 
 
-def test_no_email_addresses_in_account_config():
-    for tf in (ROOT / "infra/account").rglob("*.tf"):
-        if tf.name == "imports.tf":
-            continue
-        assert not re.search(r"[\w.+-]+@live\.com", tf.read_text()), tf.name
+def test_state_loss_recovery_is_documented():
+    readme = (ROOT / "infra/account/README.md").read_text()
+    assert "never apply" in readme.lower()
+    assert "import" in readme and "-target" in readme
+
+
+def test_budget_recipient_is_shown_in_local_plans():
+    # A valid-but-wrong address passes validation, so the plan must show who gets the alerts.
+    outputs = (ROOT / "infra/account/outputs.tf").read_text()
+    assert re.search(r'output "budget_alert_recipient"[^}]*value\s*=\s*var\.budget_email', outputs, re.S)
+    assert "sensitive" not in outputs

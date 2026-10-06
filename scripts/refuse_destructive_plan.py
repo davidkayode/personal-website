@@ -22,6 +22,8 @@ DISARMING_UPDATES = {
     "aws_cloudfront_distribution": lambda b, a: _dropped_protection(b.get("enabled"), a.get("enabled"))
     or bool(set(b.get("aliases") or []) - set(a.get("aliases") or [])),
     "aws_route53_record": lambda b, a: b.get("alias") != a.get("alias") or b.get("records") != a.get("records"),
+    # Every admin login depends on this set: any in-place edit needs an explicit allow_destroy run.
+    "aws_ssoadmin_permission_set": lambda b, a: b.get("name") == "Administrator",
 }
 
 

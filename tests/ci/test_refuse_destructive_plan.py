@@ -82,3 +82,15 @@ def test_harmless_updates_still_pass(tmp_path):
         update("aws_route53_record.www", "aws_route53_record", {"ttl": 300, "records": ["davidkayode.com"]}, {"ttl": 60, "records": ["davidkayode.com"]}),
     ]}
     assert load().main(write(tmp_path, doc)) == 0
+
+
+def test_any_change_to_the_administrator_permission_set_is_refused():
+    before = {"name": "Administrator", "session_duration": "PT1H", "description": "x"}
+    doc = {"resource_changes": [update("aws_ssoadmin_permission_set.administrator", "aws_ssoadmin_permission_set", before, {**before, "session_duration": "PT12H"})]}
+    assert load().destructive_changes(doc) == ["aws_ssoadmin_permission_set.administrator"]
+
+
+def test_other_permission_sets_can_change():
+    before = {"name": "Developer", "session_duration": "PT12H"}
+    doc = {"resource_changes": [update("aws_ssoadmin_permission_set.developer", "aws_ssoadmin_permission_set", before, {**before, "session_duration": "PT8H"})]}
+    assert load().destructive_changes(doc) == []
