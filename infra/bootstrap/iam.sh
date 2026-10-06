@@ -15,9 +15,21 @@ render() {
 }
 
 boundary_arn="arn:aws:iam::${ACCOUNT_ID}:policy/personal-website-lambda-boundary"
+canonical() { python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), sort_keys=True))'; }
+
 if aws iam get-policy --policy-arn "$boundary_arn" >/dev/null 2>&1; then
-  aws iam create-policy-version --policy-arn "$boundary_arn" \
-    --policy-document "$(render lambda-boundary.json)" --set-as-default >/dev/null
+  default_version=$(aws iam get-policy --policy-arn "$boundary_arn" --query Policy.DefaultVersionId --output text)
+  live=$(aws iam get-policy-version --policy-arn "$boundary_arn" --version-id "$default_version" --query PolicyVersion.Document --output json | canonical)
+  wanted=$(render lambda-boundary.json | canonical)
+  if [ "$live" != "$wanted" ]; then
+    # IAM keeps at most five versions: drop the oldest non-default one first.
+    if [ "$(aws iam list-policy-versions --policy-arn "$boundary_arn" --query 'length(Versions)' --output text)" -ge 5 ]; then
+      oldest=$(aws iam list-policy-versions --policy-arn "$boundary_arn" --query 'sort_by(Versions[?!IsDefaultVersion], &CreateDate)[0].VersionId' --output text)
+      aws iam delete-policy-version --policy-arn "$boundary_arn" --version-id "$oldest"
+    fi
+    aws iam create-policy-version --policy-arn "$boundary_arn" \
+      --policy-document "$(render lambda-boundary.json)" --set-as-default >/dev/null
+  fi
 else
   aws iam create-policy --policy-name personal-website-lambda-boundary \
     --policy-document "$(render lambda-boundary.json)" >/dev/null

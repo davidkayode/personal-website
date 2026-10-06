@@ -143,3 +143,17 @@ def test_plan_role_no_longer_gets_readonlyaccess():
     assert "attach-role-policy --role-name GitHub_Plan_Role" not in script
     assert "detach-role-policy --role-name GitHub_Plan_Role --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess" in script
     assert "personal-website-plan" in script
+
+
+def test_plan_role_can_head_the_site_bucket():
+    # Without s3:ListBucket, HeadBucket returns 403 and the AWS provider treats the bucket
+    # as deleted, so plans propose replacing it (blocked only by prevent_destroy).
+    doc = render("plan.json")
+    assert any("s3:ListBucket" in actions(s) and s["Resource"] == "arn:aws:s3:::davidkayode.com" for s in allow_statements(doc))
+
+
+def test_iam_script_survives_the_five_version_limit():
+    # Re-running iam.sh must not fail once the boundary policy has five versions.
+    script = (POLICIES.parent / "iam.sh").read_text()
+    assert "delete-policy-version" in script
+    assert "sort_keys=True" in script  # skips the update when the document hasn't changed
