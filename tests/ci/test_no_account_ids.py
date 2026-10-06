@@ -6,7 +6,7 @@ import subprocess
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PLACEHOLDERS = {"123456789012"}
 SKIP_SUFFIXES = (".png", ".jpg", ".ico", ".pdf")
-SKIP_FILES = {"tests/e2e/package-lock.json", "infra/counter/.terraform.lock.hcl", "infra/edge/.terraform.lock.hcl"}
+SKIP_FILES = {"tests/e2e/package-lock.json", "infra/counter/.terraform.lock.hcl", "infra/edge/.terraform.lock.hcl", "infra/account/.terraform.lock.hcl"}
 
 
 def tracked_files():

@@ -23,6 +23,7 @@ concurrency:
 env:
   TF_VERSION: 1.16.4
   TF_STACKS: counter edge
+  CHECK_STACKS: counter edge account
 
 jobs:
   changes:
@@ -60,7 +61,7 @@ jobs:
       - run: terraform fmt -check -recursive infra
       - name: Validate and test each stack
         run: |
-          for stack in $TF_STACKS; do
+          for stack in $CHECK_STACKS; do
             terraform -chdir="infra/$stack" init -backend=false -input=false
             terraform -chdir="infra/$stack" validate -no-color
             terraform -chdir="infra/$stack" test -no-color

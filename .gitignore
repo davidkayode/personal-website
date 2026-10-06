@@ -10,6 +10,8 @@ infra/*/tfplan
 infra/*/tfplan.json
 infra/edge/imports.tf
 infra/edge/generated.tf
+infra/account/terraform.tfvars
+infra/account/imports.tf
 plan-*.txt
 *.tfstate
 *.tfstate.*
