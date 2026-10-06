@@ -23,6 +23,18 @@ describe('Live site', () => {
     });
   });
 
+  hosts.forEach((host) => {
+    // API Gateway answers preflights itself, so this checks live CORS without counting a visit.
+    it(`allows ${host} to call the counter API`, () => {
+      cy.request('https://davidkayode.com/config.json').its('body.counterApiUrl').then((url) => {
+        cy.request({ method: 'OPTIONS', url, headers: { Origin: host, 'Access-Control-Request-Method': 'POST' } }).then((response) => {
+          expect(response.status).to.eq(204);
+          expect(response.headers['access-control-allow-origin']).to.eq(host);
+        });
+      });
+    });
+  });
+
   ['/assets/headshot.jpg', '/assets/David_Kayode_Resume.pdf'].forEach((path) => {
     it(`serves ${path}`, () => {
       cy.request(`https://davidkayode.com${path}`).its('status').should('eq', 200);

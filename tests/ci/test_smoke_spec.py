@@ -16,3 +16,10 @@ def test_smoke_never_posts_to_the_api_itself():
 
 def test_live_api_is_checked_through_health():
     assert "/health" in SPEC
+
+
+def test_live_cors_is_checked_for_each_host_with_a_preflight():
+    # The page POST is stubbed, so a CORS preflight is what proves real visitors can still call the API.
+    assert "method: 'OPTIONS'" in SPEC
+    assert "'Access-Control-Request-Method': 'POST'" in SPEC
+    assert "access-control-allow-origin" in SPEC
