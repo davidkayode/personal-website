@@ -119,3 +119,27 @@ def test_deploy_role_has_no_wildcard_lambda_access():
 def test_deploy_role_is_denied_public_function_urls():
     denies = [a for s in render("deploy.json")["Statement"] if s["Effect"] == "Deny" for a in actions(s)]
     assert {"lambda:CreateFunctionUrlConfig", "lambda:UpdateFunctionUrlConfig"} <= set(denies)
+
+
+READ_VERBS = ("Get", "List", "Describe")
+
+
+def test_plan_policy_only_reads():
+    doc = render("plan.json")
+    for s in allow_statements(doc):
+        for a in actions(s):
+            service, _, verb = a.partition(":")
+            assert verb != "*" and a != "*", a
+            assert verb.startswith(READ_VERBS) or a == "apigateway:GET", a
+
+
+def test_plan_policy_denies_reading_visitor_data_and_site_objects():
+    denied = {a for s in render("plan.json")["Statement"] if s["Effect"] == "Deny" for a in actions(s)}
+    assert {"dynamodb:GetItem", "dynamodb:BatchGetItem", "dynamodb:Query", "dynamodb:Scan", "s3:GetObject"} <= denied
+
+
+def test_plan_role_no_longer_gets_readonlyaccess():
+    script = (POLICIES.parent / "iam.sh").read_text()
+    assert "attach-role-policy --role-name GitHub_Plan_Role" not in script
+    assert "detach-role-policy --role-name GitHub_Plan_Role --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess" in script
+    assert "personal-website-plan" in script

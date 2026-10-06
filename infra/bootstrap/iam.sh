@@ -31,7 +31,9 @@ if aws iam get-role --role-name GitHub_Plan_Role >/dev/null 2>&1; then
 else
   aws iam create-role --role-name GitHub_Plan_Role --assume-role-policy-document "$(render plan-trust.json)" >/dev/null
 fi
-aws iam attach-role-policy --role-name GitHub_Plan_Role --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
+# PR plans run branch code, so they get only the reads terraform plan needs (no ReadOnlyAccess).
+aws iam put-role-policy --role-name GitHub_Plan_Role --policy-name personal-website-plan --policy-document "$(render plan.json)"
+aws iam detach-role-policy --role-name GitHub_Plan_Role --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess 2>/dev/null || true
 
 echo "boundary:  $boundary_arn"
 echo "plan role: $(aws iam get-role --role-name GitHub_Plan_Role --query Role.Arn --output text)"

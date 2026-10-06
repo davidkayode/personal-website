@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "StateList", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::@STATE_BUCKET@", "Condition": { "StringLike": { "s3:prefix": ["personal-website/*"] } } },
+    { "Sid": "StateRead", "Effect": "Allow", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::@STATE_BUCKET@/personal-website/*" },
+    { "Sid": "CounterTable", "Effect": "Allow", "Action": ["dynamodb:DescribeTable", "dynamodb:DescribeContinuousBackups", "dynamodb:DescribeTimeToLive", "dynamodb:ListTagsOfResource"], "Resource": "arn:aws:dynamodb:us-east-1:@ACCOUNT_ID@:table/personal-website-*" },
+    { "Sid": "CounterFunction", "Effect": "Allow", "Action": ["lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:GetFunctionCodeSigningConfig", "lambda:GetPolicy", "lambda:GetRuntimeManagementConfig", "lambda:GetFunctionConcurrency", "lambda:GetFunctionRecursionConfig", "lambda:ListVersionsByFunction", "lambda:ListTags"], "Resource": "arn:aws:lambda:us-east-1:@ACCOUNT_ID@:function:personal-website-*" },
+    { "Sid": "CounterApi", "Effect": "Allow", "Action": "apigateway:GET", "Resource": ["arn:aws:apigateway:us-east-1::/apis", "arn:aws:apigateway:us-east-1::/apis/*", "arn:aws:apigateway:us-east-1::/tags/*"] },
+    { "Sid": "Logs", "Effect": "Allow", "Action": ["logs:DescribeLogGroups", "logs:ListTagsForResource", "logs:ListTagsLogGroup"], "Resource": ["arn:aws:logs:us-east-1:@ACCOUNT_ID@:log-group:*"] },
+    { "Sid": "CounterRole", "Effect": "Allow", "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:ListRoleTags"], "Resource": "arn:aws:iam::@ACCOUNT_ID@:role/personal-website-*" },
+    { "Sid": "SiteBucketSettings", "Effect": "Allow", "Action": ["s3:GetBucket*", "s3:GetAccelerateConfiguration", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration"], "Resource": "arn:aws:s3:::davidkayode.com" },
+    { "Sid": "Edge", "Effect": "Allow", "Action": ["cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:GetOriginAccessControl", "cloudfront:ListTagsForResource"], "Resource": ["arn:aws:cloudfront::@ACCOUNT_ID@:distribution/*", "arn:aws:cloudfront::@ACCOUNT_ID@:origin-access-control/*"] },
+    { "Sid": "Certificates", "Effect": "Allow", "Action": ["acm:DescribeCertificate", "acm:ListTagsForCertificate"], "Resource": "arn:aws:acm:us-east-1:@ACCOUNT_ID@:certificate/*" },
+    { "Sid": "NoVisitorDataOrSiteObjects", "Effect": "Deny", "Action": ["dynamodb:GetItem", "dynamodb:BatchGetItem", "dynamodb:Query", "dynamodb:Scan", "s3:GetObject"], "NotResource": "arn:aws:s3:::@STATE_BUCKET@/personal-website/*" }
+  ]
+}
