@@ -91,6 +91,12 @@ footer a:not(:last-child){
   margin-right: 2.5rem;
 }
 
+footer a .icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+}
+
 footer a:hover {
   text-decoration: none;
   color: rgb(249, 248, 248);
