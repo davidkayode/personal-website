@@ -68,6 +68,26 @@ run "counter_stack" {
     error_message = "The counter role may only call dynamodb:UpdateItem on the table."
   }
   assert {
+    condition     = aws_apigatewayv2_route.health.route_key == "GET /health"
+    error_message = "The health route must be GET /health."
+  }
+  assert {
+    condition     = jsonencode([for s in jsondecode(aws_iam_role_policy.counter.policy).Statement : s.Action if s.Sid == "ReadCounter"][0]) == jsonencode(["dynamodb:GetItem"])
+    error_message = "The health check may only add dynamodb:GetItem."
+  }
+  assert {
+    condition     = length([for s in jsondecode(aws_iam_role_policy.counter.policy).Statement : s if can(regex("dynamodb", jsonencode(s.Action)))]) == 2
+    error_message = "The counter role must have exactly two DynamoDB statements (increment and read)."
+  }
+  assert {
+    condition     = endswith(aws_lambda_permission.health.source_arn, "/*/GET/health")
+    error_message = "API Gateway may invoke the Lambda for GET /health only through its own permission."
+  }
+  assert {
+    condition     = endswith(output.health_url, "/health")
+    error_message = "health_url must point at the /health route."
+  }
+  assert {
     condition     = endswith(aws_iam_role.counter.permissions_boundary, ":policy/personal-website-lambda-boundary")
     error_message = "The counter role must carry the personal-website-lambda-boundary permissions boundary."
   }

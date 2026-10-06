@@ -58,6 +58,12 @@ resource "aws_iam_role_policy" "counter" {
         Resource = aws_dynamodb_table.visitors.arn
       },
       {
+        Sid      = "ReadCounter"
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem"]
+        Resource = aws_dynamodb_table.visitors.arn
+      },
+      {
         Sid      = "WriteLogs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
@@ -117,6 +123,13 @@ resource "aws_apigatewayv2_route" "count" {
   target    = "integrations/${aws_apigatewayv2_integration.counter.id}"
 }
 
+# Read-only check for monitoring and the smoke test; it never counts a visit.
+resource "aws_apigatewayv2_route" "health" {
+  api_id    = aws_apigatewayv2_api.counter.id
+  route_key = "GET /health"
+  target    = "integrations/${aws_apigatewayv2_integration.counter.id}"
+}
+
 resource "aws_apigatewayv2_stage" "prod" {
   api_id      = aws_apigatewayv2_api.counter.id
   name        = "prod"
@@ -144,4 +157,12 @@ resource "aws_lambda_permission" "api" {
   function_name = aws_lambda_function.counter.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.counter.execution_arn}/*/POST/count"
+}
+
+resource "aws_lambda_permission" "health" {
+  statement_id  = "AllowApiGatewayHealth"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.counter.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.counter.execution_arn}/*/GET/health"
 }

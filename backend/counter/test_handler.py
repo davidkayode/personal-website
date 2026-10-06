@@ -106,3 +106,44 @@ def test_dynamodb_failure_returns_500_without_details(dynamodb):
     response = handler.lambda_handler({}, None)
     assert response["statusCode"] == 500
     assert body(response) == {"error": "counter unavailable"}
+
+
+HEALTH = {"routeKey": "GET /health"}
+
+
+def test_health_reports_the_count_without_changing_it(dynamodb):
+    dynamodb.put_item(TableName=TABLE, Item={"id": {"S": "0001"}, "visitorCounter": {"N": "772"}})
+    response = load_handler().lambda_handler(HEALTH, None)
+    assert response["statusCode"] == 200
+    assert body(response) == {"status": "ok", "value": 772}
+    assert stored_count(dynamodb) == 772
+
+
+def test_health_on_an_empty_table_reports_zero(dynamodb):
+    assert body(load_handler().lambda_handler(HEALTH, None)) == {"status": "ok", "value": 0}
+    assert stored_count(dynamodb) is None
+
+
+def test_health_never_writes(dynamodb):
+    handler = load_handler()
+    spy = SpyTable(boto3.resource("dynamodb").Table(TABLE))
+    handler._table = spy
+    handler.lambda_handler(HEALTH, None)
+    assert spy.calls == ["get_item"]
+
+
+class FailingReadTable:
+    def get_item(self, **kwargs):
+        raise ClientError({"Error": {"Code": "InternalServerError", "Message": "down"}}, "GetItem")
+
+
+def test_health_failure_returns_503(dynamodb):
+    handler = load_handler()
+    handler._table = FailingReadTable()
+    response = handler.lambda_handler(HEALTH, None)
+    assert response["statusCode"] == 503
+    assert body(response) == {"status": "unavailable"}
+
+
+def test_count_route_still_increments(dynamodb):
+    assert body(load_handler().lambda_handler({"routeKey": "POST /count"}, None)) == {"value": 1}
