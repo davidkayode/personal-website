@@ -79,6 +79,7 @@ jobs:
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
       needs.changes.outputs.infra == 'true' &&
       vars.TF_PLAN_ENABLED == 'true'
     runs-on: ubuntu-latest

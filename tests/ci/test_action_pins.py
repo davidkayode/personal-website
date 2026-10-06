@@ -30,3 +30,8 @@ def test_site_loads_no_scripts_from_other_sites():
     html = (ROOT / "site/index.html").read_text()
     assert not re.search(r'<script[^>]+src="https?://', html)
     assert "ion-icon" not in html
+
+
+def test_dependabot_groups_only_minor_and_patch_updates():
+    config = (ROOT / ".github/dependabot.yml").read_text()
+    assert re.search(r"update-types:\s*\[\s*\"minor\",\s*\"patch\"\s*\]", config)

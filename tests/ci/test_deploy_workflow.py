@@ -108,3 +108,9 @@ def test_check_job_runs_the_browser_script_tests():
 def test_script_changes_trigger_the_checks():
     changes = job_block(WORKFLOW.read_text(), "changes")
     assert "'site/script.js'" in changes and "'tests/js/**'" in changes
+
+
+def test_plan_is_skipped_for_dependabot():
+    # Dependabot runs get no repository secrets, and giving them the plan role would run
+    # freshly bumped action code with AWS credentials.
+    assert "github.actor != 'dependabot[bot]'" in job_block(WORKFLOW.read_text(), "plan")

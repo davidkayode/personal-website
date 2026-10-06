@@ -1,6 +1,7 @@
 version: 2
 updates:
   # Keeps the SHA-pinned actions in deploy.yml current with weekly update PRs.
+  # Minor and patch bumps arrive together; each major bump gets its own PR to review.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -8,3 +9,4 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
